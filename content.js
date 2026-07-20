@@ -12,25 +12,16 @@
   let activeModal = null;
 
   const DEFAULT_TEMPLATES = [
-    { name: "Apresentação", message: "Olá {name}, {Greeting}! Meu nome é [seu nome] e gostaria de conversar com você." },
-    { name: "Follow-up", message: "Oi {name}! {Greeting}, tudo bem? Gostaria de dar sequência na nossa conversa." },
-    { name: "Lembrete", message: "{Greeting} {name}! Este é um lembrete sobre [assunto]." },
+    { name: "Apresentação", message: "Olá {name}, {Greeting}! Meu nome é [seu nome] e gostaria de conversar com você.", followups: ["Tudo bem? Gostaria de apresentar nossos serviços.", "Caso tenha interesse, posso enviar mais informações!"], interval: 20 },
+    { name: "Follow-up", message: "Oi {name}! {Greeting}, tudo bem? Gostaria de dar sequência na nossa conversa.", followups: [], interval: 20 },
+    { name: "Lembrete", message: "{Greeting} {name}! Este é um lembrete sobre [assunto].", followups: [], interval: 20 },
   ];
 
   function injectStyles() {
-    if (document.getElementById("wpp-tailwind-css")) return;
-    const link = document.createElement("link");
-    link.id = "wpp-tailwind-css";
-    link.rel = "stylesheet";
-    link.href = "https://cdn.tailwindcss.com";
-    document.head.appendChild(link);
-
+    if (document.getElementById("wpp-content-styles")) return;
     const style = document.createElement("style");
-    style.id = "wpp-custom-styles";
+    style.id = "wpp-content-styles";
     style.textContent = `
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-      .wpp-ext-root, .wpp-ext-root * { all: initial; }
-      .wpp-ext-root { font-family: 'Inter', system-ui, sans-serif; font-size: 14px; color: #1f2937; line-height: 1.5; }
       .wpp-badge {
         display: inline-flex !important; align-items: center; gap: 3px;
         background: #d1fae5 !important; border: 1px solid #6ee7b7 !important;
@@ -43,7 +34,52 @@
       .wpp-badge:hover { background: #a7f3d0 !important; border-color: #34d399 !important; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; }
       .wpp-badge-icon { flex-shrink: 0; }
       .wpp-badge-text { color: #065f46 !important; font-weight: 600 !important; font-size: 13px !important; }
-      .wpp-ext-root input, .wpp-ext-root textarea, .wpp-ext-root select, .wpp-ext-root button { all: unset; box-sizing: border-box; }
+      .wpp-popover { position: fixed; z-index: 2147483647; background: white; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 360px; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; color: #1f2937; }
+      .wpp-popover * { box-sizing: border-box; }
+      .wpp-popover-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; }
+      .wpp-popover-body { padding: 20px; }
+      .wpp-field { margin-bottom: 16px; }
+      .wpp-label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #374151; }
+      .wpp-input { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; transition: all 0.15s; }
+      .wpp-input:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+      .wpp-textarea { resize: vertical; min-height: 80px; }
+      .wpp-select { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: white; cursor: pointer; }
+      .wpp-select:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
+      .wpp-links { display: flex; gap: 12px; margin-top: 6px; }
+      .wpp-link { font-size: 12px; text-decoration: none; font-weight: 600; cursor: pointer; transition: color 0.15s; }
+      .wpp-link-green { color: #22c55e; }
+      .wpp-link-green:hover { color: #16a34a; }
+      .wpp-link-gray { color: #6b7280; font-weight: 500; }
+      .wpp-link-gray:hover { color: #374151; }
+      .wpp-submit { width: 100%; padding: 12px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 14px rgba(34,197,94,0.35); }
+      .wpp-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(34,197,94,0.4); }
+      .wpp-close { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: opacity 0.15s; color: white; }
+      .wpp-close:hover { opacity: 1; }
+      .wpp-modal-overlay { position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
+      .wpp-modal { background: white; border-radius: 16px; width: 380px; max-width: 90vw; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden; }
+      .wpp-modal-header { display: flex; align-items: center; justify-content: space-between; padding: 20px 24px; border-bottom: 1px solid #f3f4f6; }
+      .wpp-modal-title { margin: 0; font-size: 16px; font-weight: 700; color: #111827; }
+      .wpp-modal-body { padding: 20px 24px; }
+      .wpp-modal-footer { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid #f3f4f6; }
+      .wpp-btn { padding: 10px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; }
+      .wpp-btn-gray { background: #f3f4f6; color: #374151; }
+      .wpp-btn-gray:hover { background: #e5e7eb; }
+      .wpp-btn-green { background: #22c55e; color: white; }
+      .wpp-btn-green:hover { background: #16a34a; }
+      .wpp-hint { margin: 0 0 8px; font-size: 12px; color: #6b7280; }
+      .wpp-hint code { background: #f3f4f6; padding: 1px 4px; border-radius: 4px; font-size: 11px; }
+      .wpp-manager { width: 420px; max-height: 80vh; display: flex; flex-direction: column; }
+      .wpp-manager-list { padding: 16px 24px; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 10px; }
+      .wpp-tpl-item { display: flex; align-items: flex-start; justify-content: space-between; padding: 12px; border: 1px solid #f3f4f6; border-radius: 10px; background: #fafafa; }
+      .wpp-tpl-info { flex: 1; min-width: 0; }
+      .wpp-tpl-name { font-weight: 600; font-size: 13px; color: #111827; margin-bottom: 4px; }
+      .wpp-tpl-msg { font-size: 12px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .wpp-tpl-actions { display: flex; gap: 6px; margin-left: 12px; flex-shrink: 0; }
+      .wpp-tpl-btn { padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; transition: background 0.15s; }
+      .wpp-tpl-edit { background: #e5e7eb; color: #374151; }
+      .wpp-tpl-edit:hover { background: #d1d5db; }
+      .wpp-tpl-delete { background: #fee2e2; color: #dc2626; }
+      .wpp-tpl-delete:hover { background: #fecaca; }
     `;
     document.head.appendChild(style);
   }
@@ -85,10 +121,23 @@
   }
 
   function buildWhatsAppLink(phone, message) {
+    // Sanitize phone: strip all non-numeric chars
     const digits = phone.replace(/\D/g, "");
-    const full = digits.startsWith("55") ? digits : "55" + digits;
-    const encoded = encodeURIComponent(message);
-    return `https://wa.me/${full}?text=${encoded}`;
+    const phoneClean = digits.startsWith("55") ? digits : "55" + digits;
+
+    // WhatsApp treats Unicode line/paragraph separators as invalid characters.
+    // Normalize them to regular line feeds before UTF-8 URL encoding. Do not
+    // replace U+FFFD: it means the text was already corrupted upstream.
+    const cleanMessage = String(message)
+      .replace(/\r\n?/g, "\n")
+      .replace(/[\u2028\u2029]/g, "\n");
+
+    // Encode properly
+    const encoded = encodeURIComponent(cleanMessage);
+
+    // Use the direct send endpoint. The wa.me desktop redirect can decode
+    // supplementary Unicode characters (emoji) as U+FFFD.
+    return `https://api.whatsapp.com/send/?phone=${phoneClean}&text=${encoded}`;
   }
 
   function closePopover() {
@@ -106,119 +155,225 @@
     });
   }
 
-  function createTemplateCreatorModal(onSave) {
+  const CLOSE_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+  const WA_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
+
+  function createTemplateCreatorModal(onSave, editTemplate) {
     closeModal();
-    const root = document.createElement("div");
-    root.className = "wpp-ext-root";
-    root.innerHTML = `
-      <div style="position:fixed;inset:0;z-index:2147483647;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);">
-        <div style="background:#fff;border-radius:16px;width:380px;max-width:90vw;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);overflow:hidden;">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #f3f4f6;">
-            <h3 style="margin:0;font-size:16px;font-weight:700;color:#111827;">Criar Template</h3>
-            <button class="wpp-modal-close-btn" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+    const isEdit = !!editTemplate;
+    const overlay = document.createElement("div");
+    overlay.className = "wpp-modal-overlay";
+    overlay.innerHTML = `
+      <div class="wpp-modal">
+        <div class="wpp-modal-header">
+          <h3 class="wpp-modal-title">${isEdit ? "Editar Template" : "Criar Template"}</h3>
+          <button class="wpp-close-btn" style="color:#9ca3af;">${CLOSE_SVG}</button>
+        </div>
+        <div class="wpp-modal-body" style="max-height:60vh;overflow-y:auto;">
+          <label class="wpp-label">Nome do Template</label>
+          <input class="wpp-input wpp-tpl-name" type="text" value="${isEdit ? editTemplate.name : ""}" placeholder="Ex: Boas-vindas" />
+          <label class="wpp-label" style="margin-top:16px;">Mensagem Inicial</label>
+          <p class="wpp-hint">Use <code>{name}</code>, <code>{Greeting}</code></p>
+          <textarea class="wpp-input wpp-textarea wpp-tpl-msg" rows="3" placeholder="Olá {name}, {Greeting}!">${isEdit ? editTemplate.message : ""}</textarea>
+          <div style="margin-top:16px;padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
+            <label style="display:block;margin-bottom:8px;font-size:12px;font-weight:600;color:#6b7280;">Follow-ups (opcional)</label>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div>
+                <label style="display:block;margin-bottom:4px;font-size:11px;color:#9ca3af;">Follow-up 1</label>
+                <textarea class="wpp-input wpp-tpl-fu1" rows="2" placeholder="Segunda mensagem..." style="resize:none;min-height:auto;"></textarea>
+              </div>
+              <div>
+                <label style="display:block;margin-bottom:4px;font-size:11px;color:#9ca3af;">Follow-up 2</label>
+                <textarea class="wpp-input wpp-tpl-fu2" rows="2" placeholder="Terceira mensagem..." style="resize:none;min-height:auto;"></textarea>
+              </div>
+            </div>
           </div>
-          <div style="padding:20px 24px;">
-            <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#374151;">Nome do Template</label>
-            <input class="wpp-tpl-name" type="text" placeholder="Ex: Boas-vindas" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;transition:border-color 0.15s;" onfocus="this.style.borderColor='#22c55e'" onblur="this.style.borderColor='#e5e7eb'" />
-            <label style="display:block;margin:16px 0 6px;font-size:13px;font-weight:600;color:#374151;">Mensagem</label>
-            <p style="margin:0 0 8px;font-size:12px;color:#6b7280;">Use <code style="background:#f3f4f6;padding:1px 4px;border-radius:4px;">{name}</code>, <code style="background:#f3f4f6;padding:1px 4px;border-radius:4px;">{Greeting}</code></p>
-            <textarea class="wpp-tpl-msg" rows="4" placeholder="Olá {name}, {Greeting}!" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;resize:vertical;min-height:80px;font-family:inherit;transition:border-color 0.15s;" onfocus="this.style.borderColor='#22c55e'" onblur="this.style.borderColor='#e5e7eb'"></textarea>
+          <div style="margin-top:16px;display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" class="wpp-tpl-default" style="width:16px;height:16px;accent-color:#22c55e;" ${isEdit && editTemplate?.isDefault ? 'checked' : ''} />
+            <label style="font-size:13px;color:#374151;cursor:pointer;">Definir como template padrão</label>
           </div>
-          <div style="display:flex;justify-content:flex-end;gap:10px;padding:16px 24px;border-top:1px solid #f3f4f6;">
-            <button class="wpp-tpl-cancel" style="padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#f3f4f6;color:#374151;border:none;transition:background 0.15s;" onmouseover="this.style.background='#e5e7eb'" onmouseout="this.style.background='#f3f4f6'">Cancelar</button>
-            <button class="wpp-tpl-save" style="padding:10px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;background:#22c55e;color:#fff;border:none;transition:background 0.15s;" onmouseover="this.style.background='#16a34a'" onmouseout="this.style.background='#22c55e'">Salvar</button>
+          <div style="margin-top:12px;">
+            <label style="display:block;margin-bottom:4px;font-size:12px;font-weight:500;color:#6b7280;">Intervalo entre follow-ups (segundos)</label>
+            <input type="number" class="wpp-input wpp-tpl-interval" value="${isEdit && editTemplate?.interval ? editTemplate.interval : 20}" min="10" max="3600" />
           </div>
+        </div>
+        <div class="wpp-modal-footer">
+          <button class="wpp-btn wpp-btn-gray wpp-tpl-cancel">Cancelar</button>
+          <button class="wpp-btn wpp-btn-green wpp-tpl-save">Salvar</button>
         </div>
       </div>
     `;
-    document.body.appendChild(root);
-    activeModal = root;
+    document.body.appendChild(overlay);
+    activeModal = overlay;
 
-    root.querySelector(".wpp-modal-close-btn").onclick = closeModal;
-    root.querySelector(".wpp-tpl-cancel").onclick = closeModal;
-    root.querySelector(".wpp-tpl-save").onclick = () => {
-      const name = root.querySelector(".wpp-tpl-name").value.trim();
-      const message = root.querySelector(".wpp-tpl-msg").value.trim();
+    overlay.querySelector(".wpp-close-btn").onclick = closeModal;
+    overlay.querySelector(".wpp-tpl-cancel").onclick = closeModal;
+    overlay.querySelector(".wpp-tpl-save").onclick = () => {
+      const name = overlay.querySelector(".wpp-tpl-name").value.trim();
+      const message = overlay.querySelector(".wpp-tpl-msg").value.trim();
       if (!name || !message) return;
-      chrome.runtime.sendMessage({ type: "SAVE_TEMPLATE", template: { name, message } }, () => { onSave(); closeModal(); });
+      const followups = [];
+      const fu1 = overlay.querySelector(".wpp-tpl-fu1")?.value.trim();
+      const fu2 = overlay.querySelector(".wpp-tpl-fu2")?.value.trim();
+      if (fu1) followups.push(fu1);
+      if (fu2) followups.push(fu2);
+      const isDefault = overlay.querySelector(".wpp-tpl-default")?.checked || false;
+      const interval = parseInt(overlay.querySelector(".wpp-tpl-interval")?.value) || 20;
+
+      const doSave = () => {
+        chrome.runtime.sendMessage({ type: "SAVE_TEMPLATE", template: { name, message, followups, isDefault, interval } }, () => { onSave(); closeModal(); });
+      };
+
+      if (isEdit && editTemplate.name !== name) {
+        chrome.runtime.sendMessage({ type: "DELETE_TEMPLATE", name: editTemplate.name }, doSave);
+      } else {
+        doSave();
+      }
     };
-    root.addEventListener("click", (e) => { if (e.target === root.firstElementChild) closeModal(); });
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) closeModal(); });
   }
 
-  function showPopover(badge, phoneDigits) {
-    closePopover();
-    injectStyles();
-
-    const root = document.createElement("div");
-    root.className = "wpp-ext-root";
-
+  function createTemplateManagerModal(onRefresh) {
+    closeModal();
     loadTemplates((templates) => {
-      const formatted = formatPhoneBR(phoneDigits);
-      const firstTemplate = templates[0];
+      const overlay = document.createElement("div");
+      overlay.className = "wpp-modal-overlay";
 
-      root.innerHTML = `
-        <div style="position:absolute;z-index:2147483647;background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);width:360px;overflow:hidden;" class="wpp-popover-panel">
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);color:#fff;">
-            <div style="display:flex;align-items:center;gap:8px;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              <span style="font-weight:700;font-size:15px;">WhatsApp Composer</span>
+      function renderList() {
+        const listEl = overlay.querySelector(".wpp-manager-list");
+        if (!listEl) return;
+        if (templates.length === 0) {
+          listEl.innerHTML = '<p style="text-align:center;color:#9ca3af;padding:20px 0;font-size:13px;">Nenhum template criado.</p>';
+          return;
+        }
+        listEl.innerHTML = templates.map((t, i) => `
+          <div class="wpp-tpl-item">
+            <div class="wpp-tpl-info">
+              <div class="wpp-tpl-name">${t.name} ${t.isDefault ? '<span style="font-size:10px;background:#dcfce7;color:#16a34a;padding:2px 6px;border-radius:4px;font-weight:600;margin-left:6px;">Padrão</span>' : ''}</div>
+              <div class="wpp-tpl-msg">${t.message}</div>
             </div>
-            <button class="wpp-close-btn" style="background:none;border:none;cursor:pointer;padding:4px;border-radius:6px;display:flex;align-items:center;justify-content:center;opacity:0.8;transition:opacity 0.15s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.8'">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-            </button>
+            <div class="wpp-tpl-actions">
+              <button class="wpp-tpl-btn wpp-tpl-edit" data-idx="${i}">Editar</button>
+              <button class="wpp-tpl-btn wpp-tpl-delete" data-idx="${i}">Excluir</button>
+            </div>
           </div>
-          <div style="padding:20px;">
-            <div style="margin-bottom:16px;">
-              <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#374151;">Telefone</label>
-              <input class="wpp-phone-input" type="tel" value="${formatted}" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;transition:all 0.15s;box-sizing:border-box;" onfocus="this.style.borderColor='#22c55e';this.style.boxShadow='0 0 0 3px rgba(34,197,94,0.1)'" onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none'" />
-            </div>
-            <div style="margin-bottom:16px;">
-              <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#374151;">Nome</label>
-              <input class="wpp-name-input" type="text" placeholder="Nome do contato" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;transition:all 0.15s;box-sizing:border-box;" onfocus="this.style.borderColor='#22c55e';this.style.boxShadow='0 0 0 3px rgba(34,197,94,0.1)'" onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none'" />
-            </div>
-            <div style="margin-bottom:16px;">
-              <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#374151;">Template</label>
-              <div style="display:flex;gap:8px;align-items:center;">
-                <select class="wpp-template-select" style="flex:1;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;background:#fff;cursor:pointer;transition:all 0.15s;">
-                  ${templates.map((t) => `<option value="${t.name}">${t.name}</option>`).join("")}
-                  <option value="__custom__">Personalizar</option>
-                </select>
-                <a href="#" class="wpp-create-tpl-link" style="font-size:12px;color:#22c55e;text-decoration:none;white-space:nowrap;font-weight:600;cursor:pointer;transition:color 0.15s;" onmouseover="this.style.color='#16a34a'" onmouseout="this.style.color='#22c55e'">Criar template</a>
-              </div>
-            </div>
-            <div style="margin-bottom:20px;">
-              <label style="display:block;margin-bottom:6px;font-size:13px;font-weight:600;color:#374151;">Mensagem</label>
-              <textarea class="wpp-message-input" rows="4" style="width:100%;padding:10px 12px;border:1px solid #e5e7eb;border-radius:8px;font-size:14px;outline:none;resize:vertical;min-height:80px;font-family:inherit;transition:all 0.15s;box-sizing:border-box;" onfocus="this.style.borderColor='#22c55e';this.style.boxShadow='0 0 0 3px rgba(34,197,94,0.1)'" onblur="this.style.borderColor='#e5e7eb';this.style.boxShadow='none'">${firstTemplate ? firstTemplate.message : ""}</textarea>
-            </div>
-            <button class="wpp-submit-btn" style="width:100%;padding:12px;background:linear-gradient(135deg,#22c55e 0%,#16a34a 100%);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;box-shadow:0 4px 14px rgba(34,197,94,0.35);" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 6px 20px rgba(34,197,94,0.4)'" onmouseout="this.style.transform='translateY(0)';this.style.boxShadow='0 4px 14px rgba(34,197,94,0.35)'">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              Enviar no WhatsApp
-            </button>
+        `).join("");
+
+        listEl.querySelectorAll(".wpp-tpl-edit").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const idx = parseInt(btn.dataset.idx);
+            const tpl = templates[idx];
+            createTemplateCreatorModal(() => {
+              createTemplateManagerModal(onRefresh);
+            }, tpl);
+          });
+        });
+
+        listEl.querySelectorAll(".wpp-tpl-delete").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const idx = parseInt(btn.dataset.idx);
+            const tpl = templates[idx];
+            if (confirm(`Excluir template "${tpl.name}"?`)) {
+              chrome.runtime.sendMessage({ type: "DELETE_TEMPLATE", name: tpl.name }, () => {
+                templates.splice(idx, 1);
+                renderList();
+              });
+            }
+          });
+        });
+      }
+
+      overlay.innerHTML = `
+        <div class="wpp-modal wpp-manager">
+          <div class="wpp-modal-header">
+            <h3 class="wpp-modal-title">Gerenciar Templates</h3>
+            <button class="wpp-close-btn" style="color:#9ca3af;">${CLOSE_SVG}</button>
+          </div>
+          <div class="wpp-manager-list"></div>
+          <div class="wpp-modal-footer">
+            <button class="wpp-btn wpp-btn-gray wpp-close-manager">Fechar</button>
           </div>
         </div>
       `;
 
-      document.body.appendChild(root);
-      activePopover = root;
+      document.body.appendChild(overlay);
+      activeModal = overlay;
 
-      const panel = root.querySelector(".wpp-popover-panel");
+      renderList();
+
+      overlay.querySelector(".wpp-close-btn").onclick = () => { closeModal(); onRefresh(); };
+      overlay.querySelector(".wpp-close-manager").onclick = () => { closeModal(); onRefresh(); };
+      overlay.addEventListener("click", (e) => { if (e.target === overlay) { closeModal(); onRefresh(); } });
+    });
+  }
+
+  function showPopover(badge, phoneDigits) {
+    closePopover();
+
+    const popover = document.createElement("div");
+    popover.className = "wpp-popover";
+
+    loadTemplates((templates) => {
+      const formatted = formatPhoneBR(phoneDigits);
+      const firstTemplate = templates.find(t => t.isDefault) || templates[0];
+
+      popover.innerHTML = `
+        <div class="wpp-popover-header">
+          <div style="display:flex;align-items:center;gap:8px;">
+            ${WA_SVG.replace('width="18" height="18"', 'width="20" height="20"')}
+            <span style="font-weight:700;font-size:15px;">WhatsApp Composer</span>
+          </div>
+          <button class="wpp-close wpp-close-btn">${'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}</button>
+        </div>
+        <div class="wpp-popover-body">
+          <div class="wpp-field">
+            <label class="wpp-label">Telefone</label>
+            <input class="wpp-input wpp-phone-input" type="tel" value="${formatted}" />
+          </div>
+          <div class="wpp-field">
+            <label class="wpp-label">Nome</label>
+            <input class="wpp-input wpp-name-input" type="text" placeholder="Nome do contato" />
+          </div>
+          <div class="wpp-field">
+            <label class="wpp-label">Template</label>
+            <select class="wpp-select wpp-template-select">
+              ${templates.map((t) => `<option value="${t.name}" ${t.isDefault ? 'selected' : ''}>${t.name}</option>`).join("")}
+              <option value="__custom__">Personalizar</option>
+            </select>
+            <div class="wpp-links">
+              <a href="#" class="wpp-link wpp-link-green wpp-create-tpl-link">Criar template</a>
+              <a href="#" class="wpp-link wpp-link-gray wpp-manage-tpl-link">Gerenciar templates</a>
+            </div>
+          </div>
+          <div class="wpp-field">
+            <label class="wpp-label">Mensagem</label>
+            <textarea class="wpp-input wpp-textarea wpp-message-input" rows="4">${firstTemplate ? firstTemplate.message : ""}</textarea>
+          </div>
+          <button class="wpp-submit wpp-submit-btn">
+            ${WA_SVG}
+            Enviar no WhatsApp
+          </button>
+        </div>
+      `;
+
+      document.body.appendChild(popover);
+      activePopover = popover;
+
       const rect = badge.getBoundingClientRect();
-      panel.style.top = `${rect.bottom + window.scrollY + 10}px`;
-      panel.style.left = `${rect.left + window.scrollX}px`;
+      popover.style.top = `${rect.bottom + 10}px`;
+      popover.style.left = `${rect.left}px`;
 
       requestAnimationFrame(() => {
-        const popRect = panel.getBoundingClientRect();
+        const popRect = popover.getBoundingClientRect();
         if (popRect.right > window.innerWidth - 16) {
-          panel.style.left = `${window.innerWidth - popRect.width - 16 + window.scrollX}px`;
+          popover.style.left = `${window.innerWidth - popRect.width - 16}px`;
         }
         if (popRect.left < 16) {
-          panel.style.left = `${16 + window.scrollX}px`;
+          popover.style.left = '16px';
         }
       });
 
-      const phoneInput = root.querySelector(".wpp-phone-input");
+      const phoneInput = popover.querySelector(".wpp-phone-input");
       phoneInput.addEventListener("input", (e) => {
         let v = e.target.value.replace(/\D/g, "");
         if (v.length > 11) v = v.slice(0, 11);
@@ -231,23 +386,33 @@
         }
       });
 
-      root.querySelector(".wpp-template-select").addEventListener("change", (e) => {
-        const msgInput = root.querySelector(".wpp-message-input");
+      popover.querySelector(".wpp-template-select").addEventListener("change", (e) => {
+        const msgInput = popover.querySelector(".wpp-message-input");
         if (e.target.value === "__custom__") {
           msgInput.value = "";
+          popover._selectedFollowups = [];
+          popover._selectedInterval = 20;
         } else {
           const t = templates.find((t) => t.name === e.target.value);
-          if (t) msgInput.value = t.message;
+          if (t) {
+            msgInput.value = t.message;
+            popover._selectedFollowups = t.followups || [];
+            popover._selectedInterval = t.interval || 20;
+          }
         }
       });
 
-      root.querySelector(".wpp-create-tpl-link").addEventListener("click", (e) => {
+      // Store initial template followups and interval
+      popover._selectedFollowups = firstTemplate?.followups || [];
+      popover._selectedInterval = firstTemplate?.interval || 20;
+
+      popover.querySelector(".wpp-create-tpl-link").addEventListener("click", (e) => {
         e.preventDefault();
         createTemplateCreatorModal(() => {
           loadTemplates((newTemplates) => {
             templates.length = 0;
             templates.push(...newTemplates);
-            const select = root.querySelector(".wpp-template-select");
+            const select = popover.querySelector(".wpp-template-select");
             const current = select.value;
             select.innerHTML = templates.map((t) => `<option value="${t.name}">${t.name}</option>`).join("") + '<option value="__custom__">Personalizar</option>';
             if ([...templates, { name: "__custom__" }].some((t) => t.name === current)) select.value = current;
@@ -255,16 +420,64 @@
         });
       });
 
-      root.querySelector(".wpp-submit-btn").addEventListener("click", () => {
+      popover.querySelector(".wpp-manage-tpl-link").addEventListener("click", (e) => {
+        e.preventDefault();
+        createTemplateManagerModal(() => {
+          loadTemplates((newTemplates) => {
+            templates.length = 0;
+            templates.push(...newTemplates);
+            const select = popover.querySelector(".wpp-template-select");
+            const current = select.value;
+            select.innerHTML = templates.map((t) => `<option value="${t.name}">${t.name}</option>`).join("") + '<option value="__custom__">Personalizar</option>';
+            if ([...templates, { name: "__custom__" }].some((t) => t.name === current)) select.value = current;
+            else select.value = templates[0]?.name || "__custom__";
+          });
+        });
+      });
+
+      popover.querySelector(".wpp-submit-btn").addEventListener("click", () => {
         const phone = phoneInput.value;
-        const name = root.querySelector(".wpp-name-input").value.trim();
-        const message = root.querySelector(".wpp-message-input").value;
+        const name = popover.querySelector(".wpp-name-input").value.trim();
+        const message = popover.querySelector(".wpp-message-input").value;
+        const followups = popover._selectedFollowups || [];
+
+        // Validate phone
+        const digits = phone.replace(/\D/g, "");
+        if (digits.length < 10 || digits.length > 13) {
+          alert("Número de telefone inválido.");
+          return;
+        }
+
+        // Check for corrupted characters
+        if (message.includes('\uFFFD')) {
+          alert("Atenção: Sua mensagem contém caracteres corrompidos (�). Por favor, recrie o template com os emojis corretos.");
+          return;
+        }
+
+        // Send first message
         const resolved = resolveTemplate(message, name);
         const link = buildWhatsAppLink(phone, resolved);
         window.open(link, "_blank");
+
+        // If there are follow-ups, schedule them via background
+        if (followups.length > 0) {
+          const messages = [message, ...followups];
+          // Get interval from the selected template
+          const selectedTpl = templates.find(t => t.name === popover.querySelector(".wpp-template-select")?.value);
+          const intervalSeconds = selectedTpl?.interval || 20;
+          chrome.runtime.sendMessage({
+            type: "SCHEDULE_SEQUENCE",
+            phone,
+            name,
+            messages,
+            intervalSeconds: intervalSeconds
+          });
+        }
+
+        closePopover();
       });
 
-      root.querySelector(".wpp-close-btn").onclick = closePopover;
+      popover.querySelector(".wpp-close-btn").onclick = closePopover;
     });
 
     document.addEventListener("click", function outsideClick(e) {
@@ -330,6 +543,7 @@
     });
   }
 
+  injectStyles();
   processTextNodes(document.body);
 
   const observer = new MutationObserver((mutations) => {
@@ -342,4 +556,20 @@
     }
   });
   observer.observe(document.body, { childList: true, subtree: true });
+
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === "OPEN_COMPOSER") {
+      const tempBadge = document.createElement("span");
+      tempBadge.className = BADGE_CLASS;
+      tempBadge.style.cssText = "position:fixed;top:50%;left:50%;z-index:2147483647;";
+      tempBadge.innerHTML = `
+        <svg class="wpp-badge-icon" viewBox="0 0 24 24" width="14" height="14">
+          <path fill="#25D366" d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        <span class="wpp-badge-text">${message.text}</span>
+      `;
+      document.body.appendChild(tempBadge);
+      showPopover(tempBadge, message.phone);
+    }
+  });
 })();

@@ -7,171 +7,125 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      width: 380px;
-      min-height: 480px;
-      background: #fff;
-      color: #1f2937;
-    }
-    .header {
-      display: flex; align-items: center; gap: 10px;
-      padding: 18px 22px;
-      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-      color: #fff;
-    }
-    .header svg { flex-shrink: 0; }
-    .header h1 { font-size: 16px; font-weight: 700; }
-    .body { padding: 20px 22px; }
-    .field { margin-bottom: 16px; }
-    .field label {
-      display: block; margin-bottom: 6px;
-      font-size: 13px; font-weight: 600; color: #374151;
-    }
-    .field input, .field select, .field textarea {
-      width: 100%; padding: 10px 12px;
-      border: 1px solid #e5e7eb; border-radius: 8px;
-      font-size: 14px; font-family: inherit;
-      outline: none; transition: all 0.15s;
-      background: #fff;
-    }
-    .field input:focus, .field select:focus, .field textarea:focus {
-      border-color: #22c55e;
-      box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
-    }
-    .field textarea { resize: vertical; min-height: 100px; }
-    .template-row { display: flex; gap: 8px; align-items: center; }
-    .template-row select { flex: 1; }
-    .create-link {
-      font-size: 12px; color: #22c55e; text-decoration: none;
-      white-space: nowrap; font-weight: 600; cursor: pointer;
-    }
-    .create-link:hover { color: #16a34a; text-decoration: underline; }
-    .hint {
-      margin: 0 0 8px; font-size: 12px; color: #6b7280;
-    }
-    .hint code {
-      background: #f3f4f6; padding: 1px 4px; border-radius: 4px;
-      font-size: 11px;
-    }
-    .submit-btn {
-      width: 100%; padding: 12px;
-      background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-      color: #fff; border: none; border-radius: 10px;
-      font-size: 14px; font-weight: 700; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: all 0.2s;
-      box-shadow: 0 4px 14px rgba(34,197,94,0.35);
-    }
-    .submit-btn:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(34,197,94,0.4);
-    }
-    .submit-btn:active { transform: translateY(0); }
-
-    /* Modal */
-    .modal-overlay {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
-      z-index: 100; align-items: center; justify-content: center;
-    }
-    .modal-overlay.active { display: flex; }
-    .modal {
-      background: #fff; border-radius: 16px; width: 340px;
-      box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); overflow: hidden;
-    }
-    .modal-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 18px 20px; border-bottom: 1px solid #f3f4f6;
-    }
-    .modal-header h3 { font-size: 15px; font-weight: 700; color: #111827; }
-    .modal-close {
-      background: none; border: none; cursor: pointer; padding: 4px;
-      border-radius: 6px; display: flex; align-items: center; justify-content: center;
-    }
-    .modal-close:hover { background: #f3f4f6; }
-    .modal-body { padding: 18px 20px; }
-    .modal-body label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; color: #374151; }
-    .modal-body input, .modal-body textarea {
-      width: 100%; padding: 10px 12px;
-      border: 1px solid #e5e7eb; border-radius: 8px;
-      font-size: 14px; font-family: inherit; outline: none;
-    }
-    .modal-body input:focus, .modal-body textarea:focus {
-      border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1);
-    }
-    .modal-body textarea { resize: vertical; min-height: 80px; margin-top: 12px; }
-    .modal-footer {
-      display: flex; justify-content: flex-end; gap: 10px;
-      padding: 14px 20px; border-top: 1px solid #f3f4f6;
-    }
-    .btn-cancel {
-      padding: 9px 14px; border-radius: 8px; font-size: 13px;
-      font-weight: 600; cursor: pointer; background: #f3f4f6;
-      color: #374151; border: none;
-    }
-    .btn-cancel:hover { background: #e5e7eb; }
-    .btn-save {
-      padding: 9px 14px; border-radius: 8px; font-size: 13px;
-      font-weight: 600; cursor: pointer; background: #22c55e;
-      color: #fff; border: none;
-    }
-    .btn-save:hover { background: #16a34a; }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
   </style>
 </head>
-<body>
-  <div class="header">
+<body class="w-[380px] min-h-[480px] bg-white text-gray-800">
+  <div class="flex items-center gap-2.5 px-5 py-4 bg-gradient-to-br from-green-500 to-green-600 text-white">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-    <h1>WhatsApp Composer</h1>
+    <h1 class="text-base font-bold">WhatsApp Composer</h1>
   </div>
-  <div class="body">
-    <div class="field">
-      <label for="phone">Telefone</label>
-      <input type="tel" id="phone" placeholder="(11) 99999-9999" />
+  <div class="p-5">
+    <div class="mb-4">
+      <label for="phone" class="block mb-1.5 text-[13px] font-semibold text-gray-600">Telefone</label>
+      <input type="tel" id="phone" placeholder="(11) 99999-9999" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/10" />
     </div>
-    <div class="field">
-      <label for="name">Nome</label>
-      <input type="text" id="name" placeholder="Nome do contato" />
+    <div class="mb-4">
+      <label for="name" class="block mb-1.5 text-[13px] font-semibold text-gray-600">Nome</label>
+      <input type="text" id="name" placeholder="Nome do contato" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/10" />
     </div>
-    <div class="field">
-      <label>Template</label>
-      <div class="template-row">
-        <select id="template"></select>
-        <a href="#" class="create-link" id="createTemplate">Criar template</a>
+    <div class="mb-4">
+      <label class="block mb-1.5 text-[13px] font-semibold text-gray-600">Template</label>
+      <select id="template" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none bg-white cursor-pointer transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/10"></select>
+      <div class="flex gap-3 mt-1.5">
+        <a href="#" class="text-[12px] text-green-500 no-underline font-semibold cursor-pointer hover:text-green-600 transition-colors" id="createTemplate">Criar template</a>
+        <a href="#" class="text-[12px] text-gray-400 no-underline font-medium cursor-pointer hover:text-gray-600 transition-colors" id="manageTemplates">Gerenciar templates</a>
       </div>
     </div>
-    <div class="field">
-      <label for="message">Mensagem</label>
-      <p class="hint">Variáveis: <code>{name}</code> <code>{Name}</code> <code>{greeting}</code> <code>{Greeting}</code></p>
-      <textarea id="message" rows="4"></textarea>
+    <div class="mb-5">
+      <label for="message" class="block mb-1.5 text-[13px] font-semibold text-gray-600">Mensagem</label>
+      <p class="m-0 mb-2 text-xs text-gray-500">Variáveis: <code class="bg-gray-100 px-1 py-0.5 rounded text-[11px]">{name}</code> <code class="bg-gray-100 px-1 py-0.5 rounded text-[11px]">{Name}</code> <code class="bg-gray-100 px-1 py-0.5 rounded text-[11px]">{greeting}</code> <code class="bg-gray-100 px-1 py-0.5 rounded text-[11px]">{Greeting}</code></p>
+      <textarea id="message" rows="4" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none resize-y min-h-[100px] font-[inherit] transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/10"></textarea>
     </div>
-    <button class="submit-btn" id="submit">
+
+    <!-- Message Sequence -->
+    <div class="mb-5 p-3 bg-gray-50 rounded-xl border border-gray-200">
+      <div class="flex items-center justify-between mb-3">
+        <label class="text-[13px] font-semibold text-gray-600">Sequência de Mensagens</label>
+        <button id="toggleSequence" class="relative w-10 h-5 bg-gray-300 rounded-full transition-colors cursor-pointer">
+          <span class="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform shadow-sm"></span>
+        </button>
+      </div>
+      <div id="sequenceFields" class="hidden space-y-3">
+        <div>
+          <label class="block mb-1 text-[12px] font-medium text-gray-500">Follow-up 1</label>
+          <textarea id="followup1" rows="2" placeholder="Segunda mensagem..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none resize-none font-[inherit] transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/10"></textarea>
+        </div>
+        <div>
+          <label class="block mb-1 text-[12px] font-medium text-gray-500">Follow-up 2</label>
+          <textarea id="followup2" rows="2" placeholder="Terceira mensagem..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none resize-none font-[inherit] transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/10"></textarea>
+        </div>
+        <div>
+          <label class="block mb-1 text-[12px] font-medium text-gray-500">Intervalo entre mensagens (minutos)</label>
+          <input type="number" id="delayMinutes" value="5" min="1" max="1440" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/10" />
+        </div>
+      </div>
+    </div>
+
+    <button class="submit-btn w-full py-3 bg-gradient-to-br from-green-500 to-green-600 text-white border-none rounded-[10px] text-sm font-bold cursor-pointer flex items-center justify-center gap-2 transition-all shadow-lg shadow-green-500/35 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-green-500/40 active:translate-y-0" id="submit">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
       Enviar no WhatsApp
     </button>
   </div>
 
   <!-- Template Creator Modal -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Criar Template</h3>
-        <button class="modal-close" id="modalClose">
+  <div class="modal-overlay hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm items-center justify-center" id="modalOverlay">
+    <div class="bg-white rounded-2xl w-[340px] shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+        <h3 id="modalTitle" class="m-0 text-[15px] font-bold text-gray-900">Criar Template</h3>
+        <button class="modal-close p-1 rounded-md hover:bg-gray-100 transition-colors" id="modalClose">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <div class="modal-body">
-        <label>Nome do Template</label>
-        <input type="text" id="tplName" placeholder="Ex: Boas-vindas" />
-        <label style="margin-top:12px;">Mensagem</label>
-        <p class="hint">Use <code>{name}</code>, <code>{Greeting}</code></p>
-        <textarea id="tplMsg" rows="4" placeholder="Olá {name}, {Greeting}!"></textarea>
+      <div class="px-5 py-4 max-h-[60vh] overflow-y-auto">
+        <label class="block mb-1.5 text-[13px] font-semibold text-gray-600">Nome do Template</label>
+        <input type="text" id="tplName" placeholder="Ex: Boas-vindas" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-500/10" />
+        <label class="block mt-4 mb-1.5 text-[13px] font-semibold text-gray-600">Mensagem Inicial</label>
+        <p class="m-0 mb-2 text-xs text-gray-500">Use <code class="bg-gray-100 px-1 py-0.5 rounded text-[11px]">{name}</code>, <code class="bg-gray-100 px-1 py-0.5 rounded text-[11px]">{Greeting}</code></p>
+        <textarea id="tplMsg" rows="3" placeholder="Olá {name}, {Greeting}!" class="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm outline-none resize-y min-h-[60px] font-[inherit] transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-500/10"></textarea>
+        <div class="mt-4 p-3 bg-gray-50 rounded-lg border border-gray-200">
+          <label class="block mb-2 text-[12px] font-semibold text-gray-500">Follow-ups (opcional)</label>
+          <div class="space-y-2">
+            <div>
+              <label class="block mb-1 text-[11px] text-gray-400">Follow-up 1</label>
+              <textarea id="tplFollowup1" rows="2" placeholder="Segunda mensagem..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none resize-none font-[inherit] transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-500/10"></textarea>
+            </div>
+            <div>
+              <label class="block mb-1 text-[11px] text-gray-400">Follow-up 2</label>
+              <textarea id="tplFollowup2" rows="2" placeholder="Terceira mensagem..." class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none resize-none font-[inherit] transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-500/10"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 flex items-center gap-2">
+          <input type="checkbox" id="tplDefault" class="w-4 h-4 text-green-500 rounded border-gray-300 focus:ring-green-500" />
+          <label for="tplDefault" class="text-[13px] text-gray-600">Definir como template padrão</label>
+        </div>
+        <div class="mt-3">
+          <label class="block mb-1 text-[12px] font-medium text-gray-500">Intervalo entre follow-ups (segundos)</label>
+          <input type="number" id="tplInterval" value="20" min="10" max="3600" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none transition-colors focus:border-green-500 focus:ring-2 focus:ring-green-500/10" />
+        </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-cancel" id="tplCancel">Cancelar</button>
-        <button class="btn-save" id="tplSave">Salvar</button>
+      <div class="flex justify-end gap-2.5 px-5 py-3.5 border-t border-gray-100">
+        <button class="px-3.5 py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer bg-gray-100 text-gray-600 border-none hover:bg-gray-200 transition-colors" id="tplCancel">Cancelar</button>
+        <button class="px-3.5 py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer bg-green-500 text-white border-none hover:bg-green-600 transition-colors" id="tplSave">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Template Manager Modal -->
+  <div class="modal-overlay hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm items-center justify-center" id="managerOverlay">
+    <div class="bg-white rounded-2xl w-[400px] max-h-[80vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
+        <h3 class="m-0 text-[15px] font-bold text-gray-900">Gerenciar Templates</h3>
+        <button class="modal-close p-1 rounded-md hover:bg-gray-100 transition-colors" id="managerClose">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div id="templateList" class="px-5 py-4 overflow-y-auto flex-1 flex flex-col gap-2.5"></div>
+      <div class="flex justify-end px-5 py-3.5 border-t border-gray-100 shrink-0">
+        <button class="px-3.5 py-2.5 rounded-lg text-[13px] font-semibold cursor-pointer bg-gray-100 text-gray-600 border-none hover:bg-gray-200 transition-colors" id="managerDone">Fechar</button>
       </div>
     </div>
   </div>

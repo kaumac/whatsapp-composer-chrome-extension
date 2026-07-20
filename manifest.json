@@ -3,7 +3,7 @@
   "name": "WhatsApp Phone Composer",
   "version": "1.0.0",
   "description": "Detects Brazilian phone numbers on web pages and lets you send WhatsApp messages with templates.",
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "contextMenus", "alarms"],
   "action": {
     "default_popup": "popup.html",
     "default_icon": "icons/icon48.png",
@@ -19,6 +19,11 @@
       "matches": ["<all_urls>"],
       "js": ["content.js"],
       "css": ["content.css"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://api.whatsapp.com/send*"],
+      "js": ["auto-continue.js"],
       "run_at": "document_idle"
     }
   ],
