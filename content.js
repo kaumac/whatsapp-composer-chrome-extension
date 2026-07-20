@@ -34,7 +34,7 @@
       .wpp-badge:hover { background: #a7f3d0 !important; border-color: #34d399 !important; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; }
       .wpp-badge-icon { flex-shrink: 0; }
       .wpp-badge-text { color: #065f46 !important; font-weight: 600 !important; font-size: 13px !important; }
-      .wpp-popover { position: fixed; z-index: 2147483647; background: white; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 360px; overflow: hidden; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; color: #1f2937; }
+      .wpp-popover { position: fixed !important; z-index: 2147483647 !important; background: white; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 360px; max-height: calc(100vh - 32px); overflow-y: auto; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; color: #1f2937; }
       .wpp-popover * { box-sizing: border-box; }
       .wpp-popover-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; }
       .wpp-popover-body { padding: 20px; }
@@ -356,21 +356,33 @@
         </div>
       `;
 
-      document.body.appendChild(popover);
+      // Mount directly under <html> so a transformed/styled <body> cannot
+      // turn the fixed popover into a page-scrolling element.
+      document.documentElement.appendChild(popover);
       activePopover = popover;
 
-      const rect = badge.getBoundingClientRect();
-      popover.style.top = `${rect.bottom + 10}px`;
-      popover.style.left = `${rect.left}px`;
+      const positionPopover = () => {
+        if (!popover.isConnected) return;
+
+        const rect = badge.getBoundingClientRect();
+        const popRect = popover.getBoundingClientRect();
+        const viewportPadding = 16;
+        const gap = 10;
+        const maxLeft = Math.max(viewportPadding, window.innerWidth - popRect.width - viewportPadding);
+        const left = Math.min(Math.max(rect.left, viewportPadding), maxLeft);
+        const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+        const top = spaceBelow >= popRect.height + gap
+          ? rect.bottom + gap
+          : Math.max(viewportPadding, rect.top - popRect.height - gap);
+
+        popover.style.setProperty("top", `${Math.round(top)}px`, "important");
+        popover.style.setProperty("left", `${Math.round(left)}px`, "important");
+      };
+
+      positionPopover();
 
       requestAnimationFrame(() => {
-        const popRect = popover.getBoundingClientRect();
-        if (popRect.right > window.innerWidth - 16) {
-          popover.style.left = `${window.innerWidth - popRect.width - 16}px`;
-        }
-        if (popRect.left < 16) {
-          popover.style.left = '16px';
-        }
+        positionPopover();
       });
 
       const phoneInput = popover.querySelector(".wpp-phone-input");
