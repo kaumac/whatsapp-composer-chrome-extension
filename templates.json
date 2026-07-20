@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Apresentação",
+    "message": "Olá {name}, {Greeting}! Meu nome é [seu nome] e gostaria de conversar com você."
+  },
+  {
+    "name": "Follow-up",
+    "message": "Oi {name}! {Greeting}, tudo bem? Gostaria de dar sequência na nossa conversa."
+  },
+  {
+    "name": "Lembrete",
+    "message": "{Greeting} {name}! Este é um lembrete sobre [assunto]."
+  }
+]
