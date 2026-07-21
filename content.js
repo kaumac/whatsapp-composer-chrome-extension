@@ -35,7 +35,7 @@
       .wpp-badge:hover { background: #a7f3d0 !important; border-color: #34d399 !important; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important; }
       .wpp-badge-icon { flex-shrink: 0; }
       .wpp-badge-text { color: #065f46 !important; font-weight: 600 !important; font-size: 13px !important; }
-      .wpp-popover { position: absolute !important; z-index: 2147483646 !important; background: white; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 360px; max-height: calc(100vh - 32px); overflow-y: auto; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; color: #1f2937; }
+      .wpp-popover { position: absolute !important; z-index: 2147483646 !important; background: white; border: 1px solid #e5e7eb; border-radius: 16px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); width: 420px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); overflow-y: auto; font-family: 'Inter', system-ui, sans-serif; font-size: 14px; color: #1f2937; }
       .wpp-popover * { box-sizing: border-box; }
       .wpp-popover-header { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; }
       .wpp-popover-body { padding: 20px; }
@@ -51,12 +51,10 @@
       .wpp-textarea { resize: vertical; min-height: 80px; }
       .wpp-select { width: 100%; padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; font-family: inherit; outline: none; background: white; cursor: pointer; }
       .wpp-select:focus { border-color: #22c55e; box-shadow: 0 0 0 3px rgba(34,197,94,0.1); }
-      .wpp-links { display: flex; gap: 12px; margin-top: 6px; }
-      .wpp-link { font-size: 12px; text-decoration: none; font-weight: 600; cursor: pointer; transition: color 0.15s; }
-      .wpp-link-green { color: #22c55e; }
-      .wpp-link-green:hover { color: #16a34a; }
-      .wpp-link-gray { color: #6b7280; font-weight: 500; }
-      .wpp-link-gray:hover { color: #374151; }
+      .wpp-template-controls { display: flex; align-items: center; gap: 8px; }
+      .wpp-template-controls .wpp-select { flex: 1; min-width: 0; }
+      .wpp-template-action { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex: 0 0 40px; padding: 0; border: 1px solid #d1d5db; border-radius: 8px; background: white; color: #6b7280; cursor: pointer; transition: all 0.15s; }
+      .wpp-template-action:hover { border-color: #22c55e; background: #f0fdf4; color: #16a34a; }
       .wpp-submit { width: 100%; padding: 12px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.2s; box-shadow: 0 4px 14px rgba(34,197,94,0.35); }
       .wpp-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(34,197,94,0.4); }
       .wpp-close { background: none; border: none; cursor: pointer; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center; opacity: 0.8; transition: opacity 0.15s; color: white; }
@@ -87,6 +85,8 @@
       .wpp-tpl-delete { background: #fee2e2; color: #dc2626; }
       .wpp-tpl-delete:hover { background: #fecaca; }
       html.wpp-value-picker-active, html.wpp-value-picker-active * { cursor: crosshair !important; }
+      html.wpp-value-picker-active .wpp-popover,
+      html.wpp-value-picker-active .wpp-modal-overlay { opacity: 0 !important; pointer-events: none !important; }
       .wpp-picker-highlight { outline: 2px solid #22c55e !important; outline-offset: 2px !important; background-color: rgba(34,197,94,0.12) !important; }
     `;
     document.head.appendChild(style);
@@ -118,13 +118,14 @@
     return "boa noite";
   }
 
-  function resolveTemplate(template, name, businessName) {
+  function resolveTemplate(template, name, businessName, region) {
     const g = getGreeting();
     const G = g.charAt(0).toUpperCase() + g.slice(1);
     return template
       .replace(/\{name\}/g, name || "")
       .replace(/\{Name\}/g, name || "")
       .replace(/\{business_name\}/g, businessName || "")
+      .replace(/\{region\}/g, region || "")
       .replace(/\{greeting\}/g, g)
       .replace(/\{Greeting\}/g, G);
   }
@@ -170,7 +171,7 @@
     return { element, value };
   }
 
-  function startValuePicker(input, button) {
+  function startValuePicker(input, button, transformValue = (value) => value) {
     stopValuePicker();
 
     let highlightedElement = null;
@@ -201,7 +202,7 @@
       if (!candidate) return;
       event.preventDefault();
       event.stopPropagation();
-      input.value = candidate.value;
+      input.value = transformValue(candidate.value);
       input.dispatchEvent(new Event("input", { bubbles: true }));
       stopValuePicker();
       input.focus();
@@ -258,6 +259,8 @@
 
   const CLOSE_SVG = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
   const TARGET_SVG = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2"/><path d="M12 2v2.5M12 19.5V22M2 12h2.5M19.5 12H22"/></svg>';
+  const PLUS_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+  const SETTINGS_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"/><path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-1.8 1.8-.06-.06a1.7 1.7 0 0 0-1.88-.34 1.7 1.7 0 0 0-1.03 1.56V20h-2.55v-.1a1.7 1.7 0 0 0-1.03-1.56 1.7 1.7 0 0 0-1.88.34l-.06.06-1.8-1.8.06-.06A1.7 1.7 0 0 0 9.4 15a1.7 1.7 0 0 0-1.56-1.03H7.7v-2.55h.1A1.7 1.7 0 0 0 9.36 10a1.7 1.7 0 0 0-.34-1.88l-.06-.06 1.8-1.8.06.06A1.7 1.7 0 0 0 12.7 6a1.7 1.7 0 0 0 1.03-1.56V4.3h2.55v.1A1.7 1.7 0 0 0 17.3 6a1.7 1.7 0 0 0 1.88.34l.06-.06 1.8 1.8-.06.06A1.7 1.7 0 0 0 20.64 10a1.7 1.7 0 0 0 1.56 1.03h.1v2.55h-.1A1.7 1.7 0 0 0 19.4 15Z"/></svg>';
   const WA_SVG = '<svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>';
 
   function createTemplateCreatorModal(onSave, editTemplate) {
@@ -275,20 +278,12 @@
           <label class="wpp-label">Nome do Template</label>
           <input class="wpp-input wpp-tpl-name" type="text" value="${isEdit ? editTemplate.name : ""}" placeholder="Ex: Boas-vindas" />
           <label class="wpp-label" style="margin-top:16px;">Mensagem Inicial</label>
-          <p class="wpp-hint">Use <code>{name}</code>, <code>{business_name}</code>, <code>{Greeting}</code></p>
+          <p class="wpp-hint">Use <code>{name}</code>, <code>{business_name}</code>, <code>{region}</code>, <code>{Greeting}</code></p>
           <textarea class="wpp-input wpp-textarea wpp-tpl-msg" rows="3" placeholder="Olá {name}, {Greeting}!">${isEdit ? editTemplate.message : ""}</textarea>
           <div style="margin-top:16px;padding:12px;background:#f9fafb;border-radius:8px;border:1px solid #e5e7eb;">
             <label style="display:block;margin-bottom:8px;font-size:12px;font-weight:600;color:#6b7280;">Follow-ups (opcional)</label>
-            <div style="display:flex;flex-direction:column;gap:8px;">
-              <div>
-                <label style="display:block;margin-bottom:4px;font-size:11px;color:#9ca3af;">Follow-up 1</label>
-                <textarea class="wpp-input wpp-tpl-fu1" rows="2" placeholder="Segunda mensagem..." style="resize:none;min-height:auto;"></textarea>
-              </div>
-              <div>
-                <label style="display:block;margin-bottom:4px;font-size:11px;color:#9ca3af;">Follow-up 2</label>
-                <textarea class="wpp-input wpp-tpl-fu2" rows="2" placeholder="Terceira mensagem..." style="resize:none;min-height:auto;"></textarea>
-              </div>
-            </div>
+            <div class="wpp-followups-list" style="display:flex;flex-direction:column;gap:8px;"></div>
+            <button type="button" class="wpp-btn wpp-btn-gray wpp-add-followup" style="width:100%;margin-top:8px;border:1px dashed #86efac;color:#16a34a;background:#f0fdf4;">+ Adicionar follow-up</button>
           </div>
           <div style="margin-top:16px;display:flex;align-items:center;gap:8px;">
             <input type="checkbox" class="wpp-tpl-default" style="width:16px;height:16px;accent-color:#22c55e;" ${isEdit && editTemplate?.isDefault ? 'checked' : ''} />
@@ -312,8 +307,36 @@
     document.body.appendChild(overlay);
     activeModal = overlay;
 
-    overlay.querySelector(".wpp-tpl-fu1").value = editTemplate?.followups?.[0] || "";
-    overlay.querySelector(".wpp-tpl-fu2").value = editTemplate?.followups?.[1] || "";
+    const followupsList = overlay.querySelector(".wpp-followups-list");
+    const renumberFollowups = () => {
+      followupsList.querySelectorAll(".wpp-followup-field").forEach((field, index) => {
+        field.querySelector(".wpp-followup-label").textContent = `Follow-up ${index + 1}`;
+        field.querySelector("textarea").placeholder = index === 0 ? "Segunda mensagem..." : "Próxima mensagem...";
+      });
+    };
+    const addFollowupField = (value = "", focus = true) => {
+      const field = document.createElement("div");
+      field.className = "wpp-followup-field";
+      field.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <label class="wpp-followup-label" style="font-size:11px;color:#9ca3af;"></label>
+          <button type="button" class="wpp-remove-followup" style="padding:0;border:0;background:none;color:#ef4444;font-size:11px;font-weight:500;cursor:pointer;">Excluir</button>
+        </div>
+        <textarea class="wpp-input wpp-tpl-fu" rows="2" style="resize:none;min-height:auto;"></textarea>
+      `;
+      field.querySelector("textarea").value = value;
+      field.querySelector(".wpp-remove-followup").onclick = () => {
+        field.remove();
+        renumberFollowups();
+      };
+      followupsList.appendChild(field);
+      renumberFollowups();
+      if (focus) field.querySelector("textarea").focus();
+    };
+    (editTemplate?.followups || [])
+      .filter((followup) => String(followup || "").trim())
+      .forEach((followup) => addFollowupField(followup, false));
+    overlay.querySelector(".wpp-add-followup").onclick = () => addFollowupField();
 
     overlay.querySelector(".wpp-close-btn").onclick = closeModal;
     overlay.querySelector(".wpp-tpl-cancel").onclick = closeModal;
@@ -321,11 +344,9 @@
       const name = overlay.querySelector(".wpp-tpl-name").value.trim();
       const message = overlay.querySelector(".wpp-tpl-msg").value.trim();
       if (!name || !message) return;
-      const followups = [];
-      const fu1 = overlay.querySelector(".wpp-tpl-fu1")?.value.trim();
-      const fu2 = overlay.querySelector(".wpp-tpl-fu2")?.value.trim();
-      if (fu1) followups.push(fu1);
-      if (fu2) followups.push(fu2);
+      const followups = [...followupsList.querySelectorAll(".wpp-tpl-fu")]
+        .map((textarea) => textarea.value.trim())
+        .filter(Boolean);
       const isDefault = overlay.querySelector(".wpp-tpl-default")?.checked || false;
       const isBusinessDefault = overlay.querySelector(".wpp-tpl-business-default")?.checked || false;
       const interval = parseInt(overlay.querySelector(".wpp-tpl-interval")?.value) || 20;
@@ -455,19 +476,26 @@
             </div>
           </div>
           <div class="wpp-field">
+            <label class="wpp-label">Região</label>
+            <div class="wpp-input-picker">
+              <input class="wpp-input wpp-region-input" type="text" placeholder="Região do contato ou negócio" />
+              <button type="button" class="wpp-value-picker-btn wpp-region-picker" aria-label="Selecionar região na página" aria-pressed="false" title="Selecionar valor na página">${TARGET_SVG}</button>
+            </div>
+          </div>
+          <div class="wpp-field">
             <label class="wpp-label">Template</label>
-            <select class="wpp-select wpp-template-select">
-              ${templates.map((t) => `<option value="${t.name}" ${t.name === firstTemplate?.name ? 'selected' : ''}>${t.name}</option>`).join("")}
-              <option value="__custom__">Personalizar</option>
-            </select>
-            <div class="wpp-links">
-              <a href="#" class="wpp-link wpp-link-green wpp-create-tpl-link">Criar template</a>
-              <a href="#" class="wpp-link wpp-link-gray wpp-manage-tpl-link">Gerenciar templates</a>
+            <div class="wpp-template-controls">
+              <select class="wpp-select wpp-template-select">
+                ${templates.map((t) => `<option value="${t.name}" ${t.name === firstTemplate?.name ? 'selected' : ''}>${t.name}</option>`).join("")}
+                <option value="__custom__">Personalizar</option>
+              </select>
+              <button type="button" class="wpp-template-action wpp-create-tpl-link" aria-label="Criar template" title="Criar template">${PLUS_SVG}</button>
+              <button type="button" class="wpp-template-action wpp-manage-tpl-link" aria-label="Gerenciar templates" title="Gerenciar templates">${SETTINGS_SVG}</button>
             </div>
           </div>
           <div class="wpp-field">
             <label class="wpp-label">Mensagem</label>
-            <p class="wpp-hint">Use <code>{name}</code>, <code>{business_name}</code>, <code>{Greeting}</code></p>
+            <p class="wpp-hint">Use <code>{name}</code>, <code>{business_name}</code>, <code>{region}</code>, <code>{Greeting}</code></p>
             <textarea class="wpp-input wpp-textarea wpp-message-input" rows="4">${firstTemplate ? firstTemplate.message : ""}</textarea>
           </div>
           <button class="wpp-submit wpp-submit-btn">
@@ -529,9 +557,10 @@
       });
 
       [
-        [".wpp-name-input", ".wpp-name-picker"],
-        [".wpp-business-name-input", ".wpp-business-name-picker"]
-      ].forEach(([inputSelector, buttonSelector]) => {
+        [".wpp-name-input", ".wpp-name-picker", (value) => value.split(/\s+/)[0] || ""],
+        [".wpp-business-name-input", ".wpp-business-name-picker"],
+        [".wpp-region-input", ".wpp-region-picker"]
+      ].forEach(([inputSelector, buttonSelector, transformValue]) => {
         const input = popover.querySelector(inputSelector);
         const button = popover.querySelector(buttonSelector);
         button.addEventListener("click", (e) => {
@@ -540,7 +569,7 @@
           if (activeValuePicker?.button === button) {
             stopValuePicker();
           } else {
-            startValuePicker(input, button);
+            startValuePicker(input, button, transformValue);
           }
         });
       });
@@ -612,6 +641,7 @@
         const phone = phoneInput.value;
         const name = popover.querySelector(".wpp-name-input").value.trim();
         const businessName = popover.querySelector(".wpp-business-name-input").value.trim();
+        const region = popover.querySelector(".wpp-region-input").value.trim();
         const message = popover.querySelector(".wpp-message-input").value;
         const followups = popover._selectedFollowups || [];
 
@@ -629,7 +659,7 @@
         }
 
         // Send first message
-        const resolved = resolveTemplate(message, name, businessName);
+        const resolved = resolveTemplate(message, name, businessName, region);
         const link = buildWhatsAppLink(phone, resolved);
         window.open(link, "_blank");
 
@@ -644,6 +674,7 @@
             phone,
             name,
             businessName,
+            region,
             messages,
             intervalSeconds: intervalSeconds
           });

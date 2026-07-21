@@ -14,13 +14,14 @@
     return "boa noite";
   }
 
-  function resolveTemplate(template, name, businessName) {
+  function resolveTemplate(template, name, businessName, region) {
     const g = getGreeting();
     const G = g.charAt(0).toUpperCase() + g.slice(1);
     return template
       .replace(/\{name\}/g, name || "")
       .replace(/\{Name\}/g, name || "")
       .replace(/\{business_name\}/g, businessName || "")
+      .replace(/\{region\}/g, region || "")
       .replace(/\{greeting\}/g, g)
       .replace(/\{Greeting\}/g, G);
   }
@@ -61,6 +62,7 @@
   const phoneInput = document.getElementById("phone");
   const nameInput = document.getElementById("name");
   const businessNameInput = document.getElementById("businessName");
+  const regionInput = document.getElementById("region");
   const templateSelect = document.getElementById("template");
   const messageInput = document.getElementById("message");
   const submitBtn = document.getElementById("submit");
@@ -73,8 +75,8 @@
   const tplSave = document.getElementById("tplSave");
   const tplName = document.getElementById("tplName");
   const tplMsg = document.getElementById("tplMsg");
-  const tplFollowup1 = document.getElementById("tplFollowup1");
-  const tplFollowup2 = document.getElementById("tplFollowup2");
+  const templateFollowups = document.getElementById("templateFollowups");
+  const addTemplateFollowup = document.getElementById("addTemplateFollowup");
   const managerOverlay = document.getElementById("managerOverlay");
   const managerClose = document.getElementById("managerClose");
   const managerDone = document.getElementById("managerDone");
@@ -83,13 +85,53 @@
   // Sequence elements
   const toggleSequence = document.getElementById("toggleSequence");
   const sequenceFields = document.getElementById("sequenceFields");
-  const followup1 = document.getElementById("followup1");
-  const followup2 = document.getElementById("followup2");
+  const sequenceFollowups = document.getElementById("sequenceFollowups");
+  const addSequenceFollowup = document.getElementById("addSequenceFollowup");
   const delayMinutes = document.getElementById("delayMinutes");
 
   let templates = [];
   let editingTemplate = null;
   let sequenceEnabled = false;
+
+  function renumberFollowups(container) {
+    container.querySelectorAll(".followup-field").forEach((field, index) => {
+      field.querySelector(".followup-label").textContent = `Follow-up ${index + 1}`;
+      field.querySelector("textarea").placeholder = index === 0 ? "Segunda mensagem..." : "Próxima mensagem...";
+    });
+  }
+
+  function addFollowupField(container, value = "", focus = true) {
+    const field = document.createElement("div");
+    field.className = "followup-field";
+    field.innerHTML = `
+      <div class="flex items-center justify-between mb-1">
+        <label class="followup-label text-[11px] text-gray-400"></label>
+        <button type="button" class="remove-followup text-[11px] font-medium text-red-500 hover:text-red-600">Excluir</button>
+      </div>
+      <textarea rows="2" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm outline-none resize-none font-[inherit] transition-all focus:border-green-500 focus:ring-2 focus:ring-green-500/10"></textarea>
+    `;
+    field.querySelector("textarea").value = value;
+    field.querySelector(".remove-followup").addEventListener("click", () => {
+      field.remove();
+      renumberFollowups(container);
+    });
+    container.appendChild(field);
+    renumberFollowups(container);
+    if (focus) field.querySelector("textarea").focus();
+  }
+
+  function setFollowupFields(container, followups = []) {
+    container.innerHTML = "";
+    followups
+      .filter((followup) => String(followup || "").trim())
+      .forEach((followup) => addFollowupField(container, followup, false));
+  }
+
+  function getFollowupValues(container) {
+    return [...container.querySelectorAll("textarea")]
+      .map((textarea) => textarea.value.trim())
+      .filter(Boolean);
+  }
 
   function getDefaultTemplate(isBusiness) {
     return templates.find((template) => isBusiness ? template.isBusinessDefault : template.isDefault)
@@ -101,8 +143,7 @@
     if (!template) return;
     templateSelect.value = template.name;
     messageInput.value = template.message;
-    followup1.value = template.followups?.[0] || "";
-    followup2.value = template.followups?.[1] || "";
+    setFollowupFields(sequenceFollowups, template.followups || []);
   }
 
   function openModal(overlay) {
@@ -179,8 +220,7 @@
     modalTitle.textContent = isEdit ? "Editar Template" : "Criar Template";
     tplName.value = isEdit && editingTemplate ? editingTemplate.name : "";
     tplMsg.value = isEdit && editingTemplate ? editingTemplate.message : "";
-    tplFollowup1.value = isEdit && editingTemplate?.followups?.[0] || "";
-    tplFollowup2.value = isEdit && editingTemplate?.followups?.[1] || "";
+    setFollowupFields(templateFollowups, isEdit ? editingTemplate?.followups || [] : []);
     document.getElementById("tplDefault").checked = isEdit && editingTemplate?.isDefault || false;
     document.getElementById("tplBusinessDefault").checked = isEdit && editingTemplate?.isBusinessDefault || false;
     document.getElementById("tplInterval").value = isEdit && editingTemplate?.interval ? editingTemplate.interval : 20;
@@ -205,6 +245,9 @@
     }
   });
 
+  addTemplateFollowup.addEventListener("click", () => addFollowupField(templateFollowups));
+  addSequenceFollowup.addEventListener("click", () => addFollowupField(sequenceFollowups));
+
   phoneInput.addEventListener("input", () => {
     phoneInput.value = formatPhoneBR(phoneInput.value);
   });
@@ -216,8 +259,7 @@
   templateSelect.addEventListener("change", () => {
     if (templateSelect.value === "__custom__") {
       messageInput.value = "";
-      followup1.value = "";
-      followup2.value = "";
+      setFollowupFields(sequenceFollowups);
     } else {
       const t = templates.find((t) => t.name === templateSelect.value);
       if (t) {
@@ -230,6 +272,7 @@
     const phone = phoneInput.value;
     const name = nameInput.value.trim();
     const businessName = businessNameInput.value.trim();
+    const region = regionInput.value.trim();
     const mainMessage = messageInput.value;
 
     if (!phone || !mainMessage) {
@@ -251,20 +294,19 @@
     }
 
     // Check if sequence is enabled
-    const hasFollowups = sequenceEnabled && (followup1.value.trim() || followup2.value.trim());
+    const followups = sequenceEnabled ? getFollowupValues(sequenceFollowups) : [];
+    const hasFollowups = followups.length > 0;
 
     if (hasFollowups) {
       // Build messages array
-      const messages = [mainMessage];
-      if (followup1.value.trim()) messages.push(followup1.value.trim());
-      if (followup2.value.trim()) messages.push(followup2.value.trim());
+      const messages = [mainMessage, ...followups];
 
       // Use template interval or default to 20 seconds
       const selectedTpl = templates.find(t => t.name === templateSelect.value);
       const intervalSeconds = selectedTpl?.interval || 20;
 
       // Send first message immediately
-      const resolved = resolveTemplate(mainMessage, name, businessName);
+      const resolved = resolveTemplate(mainMessage, name, businessName, region);
       chrome.tabs.create({ url: buildWhatsAppLink(phone, resolved) });
 
       // Schedule follow-ups
@@ -273,6 +315,7 @@
         phone,
         name,
         businessName,
+        region,
         messages,
         intervalSeconds: intervalSeconds
       }, (response) => {
@@ -282,7 +325,7 @@
       });
     } else {
       // Single message
-      const resolved = resolveTemplate(mainMessage, name, businessName);
+      const resolved = resolveTemplate(mainMessage, name, businessName, region);
       chrome.tabs.create({ url: buildWhatsAppLink(phone, resolved) });
     }
   });
@@ -322,10 +365,7 @@
     const message = tplMsg.value.trim();
     if (!name || !message) return;
 
-    // Build followups array from template fields
-    const followups = [];
-    if (tplFollowup1.value.trim()) followups.push(tplFollowup1.value.trim());
-    if (tplFollowup2.value.trim()) followups.push(tplFollowup2.value.trim());
+    const followups = getFollowupValues(templateFollowups);
     const isDefault = document.getElementById("tplDefault").checked;
     const isBusinessDefault = document.getElementById("tplBusinessDefault").checked;
     const interval = parseInt(document.getElementById("tplInterval").value) || 20;

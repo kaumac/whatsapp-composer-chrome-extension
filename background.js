@@ -47,7 +47,7 @@ function buildWhatsAppLink(phone, message) {
   return `https://api.whatsapp.com/send/?phone=${phoneClean}&text=${encoded}`;
 }
 
-function resolveTemplate(template, name, businessName) {
+function resolveTemplate(template, name, businessName, region) {
   const h = new Date().getHours();
   let g, G;
   if (h >= 5 && h < 12) { g = "bom dia"; G = "Bom dia"; }
@@ -57,6 +57,7 @@ function resolveTemplate(template, name, businessName) {
     .replace(/\{name\}/g, name || "")
     .replace(/\{Name\}/g, name || "")
     .replace(/\{business_name\}/g, businessName || "")
+    .replace(/\{region\}/g, region || "")
     .replace(/\{greeting\}/g, g)
     .replace(/\{Greeting\}/g, G);
 }
@@ -125,7 +126,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Schedule a message sequence using WhatsApp send links
   if (message.type === "SCHEDULE_SEQUENCE") {
-    const { phone, name, businessName, messages, intervalSeconds } = message;
+    const { phone, name, businessName, region, messages, intervalSeconds } = message;
     const sequenceId = `seq_${Date.now()}`;
     // Convert seconds to minutes for Chrome alarms (minimum ~0.5 minutes)
     const delayMinutes = Math.max(intervalSeconds / 60, 0.5);
@@ -136,6 +137,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         phone,
         name,
         businessName,
+        region,
         messages,
         intervalSeconds,
         delayMinutes,
@@ -187,10 +189,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     const sequence = sequences[sequenceId];
     if (!sequence) return;
 
-    const { phone, name, businessName, messages, delayMinutes, currentIndex } = sequence;
+    const { phone, name, businessName, region, messages, delayMinutes, currentIndex } = sequence;
 
     if (currentIndex < messages.length) {
-      const message = resolveTemplate(messages[currentIndex], name, businessName);
+      const message = resolveTemplate(messages[currentIndex], name, businessName, region);
       const url = buildWhatsAppLink(phone, message);
 
       // Open the tab with the follow-up message

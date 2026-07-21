@@ -17,9 +17,10 @@ Chrome extension that detects Brazilian phone numbers on web pages and lets you 
 - **Composer Popover**: Click a badge to open a message composer with:
   - Phone number input with Brazilian format masking
   - Name field for personalization
+  - Business name and region fields with page value pickers
   - Pre-built message templates
   - Custom template creation
-  - Template variables: `{name}`, `{Name}`, `{greeting}`, `{Greeting}`
+  - Template variables: `{name}`, `{Name}`, `{business_name}`, `{region}`, `{greeting}`, `{Greeting}`
 
 - **Time-based Greetings**: Automatically uses "bom dia", "boa tarde", or "boa noite" based on browser time
 
@@ -67,6 +68,8 @@ google-chrome --load-extension="/path/to/chrome_wpp"
 
 5. **Template Variables**:
    - `{name}` or `{Name}` → Replaced with the Name field value
+   - `{business_name}` → Replaced with the Nome do negócio field value
+   - `{region}` → Replaced with the Região field value
    - `{greeting}` → "bom dia" / "boa tarde" / "boa noite"
    - `{Greeting}` → "Bom dia" / "Boa tarde" / "Boa noite"
 
