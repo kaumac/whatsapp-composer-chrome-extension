@@ -14,12 +14,13 @@
     return "boa noite";
   }
 
-  function resolveTemplate(template, name) {
+  function resolveTemplate(template, name, businessName) {
     const g = getGreeting();
     const G = g.charAt(0).toUpperCase() + g.slice(1);
     return template
       .replace(/\{name\}/g, name || "")
       .replace(/\{Name\}/g, name || "")
+      .replace(/\{business_name\}/g, businessName || "")
       .replace(/\{greeting\}/g, g)
       .replace(/\{Greeting\}/g, G);
   }
@@ -59,6 +60,7 @@
 
   const phoneInput = document.getElementById("phone");
   const nameInput = document.getElementById("name");
+  const businessNameInput = document.getElementById("businessName");
   const templateSelect = document.getElementById("template");
   const messageInput = document.getElementById("message");
   const submitBtn = document.getElementById("submit");
@@ -89,6 +91,20 @@
   let editingTemplate = null;
   let sequenceEnabled = false;
 
+  function getDefaultTemplate(isBusiness) {
+    return templates.find((template) => isBusiness ? template.isBusinessDefault : template.isDefault)
+      || templates.find((template) => template.isDefault)
+      || templates[0];
+  }
+
+  function applyTemplate(template) {
+    if (!template) return;
+    templateSelect.value = template.name;
+    messageInput.value = template.message;
+    followup1.value = template.followups?.[0] || "";
+    followup2.value = template.followups?.[1] || "";
+  }
+
   function openModal(overlay) {
     overlay.classList.remove("hidden");
     overlay.classList.add("flex");
@@ -100,21 +116,20 @@
   }
 
   function populateTemplates() {
-    templateSelect.innerHTML = templates.map((t) => `<option value="${t.name}" ${t.isDefault ? 'selected' : ''}>${t.name}</option>`).join("") + '<option value="__custom__">Personalizar</option>';
-    // Find the default template, or use the first one
-    const defaultTpl = templates.find(t => t.isDefault) || templates[0];
-    if (defaultTpl) {
-      templateSelect.value = defaultTpl.name;
-      messageInput.value = defaultTpl.message;
-      followup1.value = defaultTpl.followups?.[0] || "";
-      followup2.value = defaultTpl.followups?.[1] || "";
-    }
+    const defaultTpl = getDefaultTemplate(Boolean(businessNameInput.value.trim()));
+    templateSelect.innerHTML = templates.map((t) => `<option value="${t.name}" ${t.name === defaultTpl?.name ? 'selected' : ''}>${t.name}</option>`).join("") + '<option value="__custom__">Personalizar</option>';
+    applyTemplate(defaultTpl);
   }
 
   function loadTemplates(callback) {
     chrome.runtime.sendMessage({ type: "GET_TEMPLATES" }, (response) => {
       const custom = (response && response.customTemplates) || [];
-      templates = [...DEFAULT_TEMPLATES, ...custom];
+      const deleted = new Set((response && response.deletedTemplates) || []);
+      const customNames = new Set(custom.map((template) => template.name));
+      const defaults = DEFAULT_TEMPLATES.filter(
+        (template) => !deleted.has(template.name) && !customNames.has(template.name)
+      );
+      templates = [...defaults, ...custom];
       populateTemplates();
       if (callback) callback();
     });
@@ -128,7 +143,7 @@
     templateList.innerHTML = templates.map((t, i) => `
       <div class="flex items-start justify-between p-3 border border-gray-100 rounded-xl bg-gray-50">
         <div class="flex-1 min-w-0">
-          <div class="font-semibold text-[13px] text-gray-900 mb-1">${t.name} ${t.isDefault ? '<span class="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded font-semibold ml-1">Padrão</span>' : ''}</div>
+          <div class="font-semibold text-[13px] text-gray-900 mb-1">${t.name} ${t.isDefault ? '<span class="text-[10px] bg-green-100 text-green-600 px-1.5 py-0.5 rounded font-semibold ml-1">Padrão para indivíduos</span>' : ''} ${t.isBusinessDefault ? '<span class="text-[10px] bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-semibold ml-1">Padrão para negócios</span>' : ''}</div>
           <div class="text-xs text-gray-500 overflow-hidden text-ellipsis whitespace-nowrap">${t.message}</div>
         </div>
         <div class="flex gap-1.5 ml-3 shrink-0">
@@ -167,6 +182,7 @@
     tplFollowup1.value = isEdit && editingTemplate?.followups?.[0] || "";
     tplFollowup2.value = isEdit && editingTemplate?.followups?.[1] || "";
     document.getElementById("tplDefault").checked = isEdit && editingTemplate?.isDefault || false;
+    document.getElementById("tplBusinessDefault").checked = isEdit && editingTemplate?.isBusinessDefault || false;
     document.getElementById("tplInterval").value = isEdit && editingTemplate?.interval ? editingTemplate.interval : 20;
     openModal(modalOverlay);
     tplName.focus();
@@ -193,6 +209,10 @@
     phoneInput.value = formatPhoneBR(phoneInput.value);
   });
 
+  businessNameInput.addEventListener("input", () => {
+    applyTemplate(getDefaultTemplate(Boolean(businessNameInput.value.trim())));
+  });
+
   templateSelect.addEventListener("change", () => {
     if (templateSelect.value === "__custom__") {
       messageInput.value = "";
@@ -201,9 +221,7 @@
     } else {
       const t = templates.find((t) => t.name === templateSelect.value);
       if (t) {
-        messageInput.value = t.message;
-        followup1.value = t.followups?.[0] || "";
-        followup2.value = t.followups?.[1] || "";
+        applyTemplate(t);
       }
     }
   });
@@ -211,6 +229,7 @@
   submitBtn.addEventListener("click", () => {
     const phone = phoneInput.value;
     const name = nameInput.value.trim();
+    const businessName = businessNameInput.value.trim();
     const mainMessage = messageInput.value;
 
     if (!phone || !mainMessage) {
@@ -245,7 +264,7 @@
       const intervalSeconds = selectedTpl?.interval || 20;
 
       // Send first message immediately
-      const resolved = resolveTemplate(mainMessage, name);
+      const resolved = resolveTemplate(mainMessage, name, businessName);
       chrome.tabs.create({ url: buildWhatsAppLink(phone, resolved) });
 
       // Schedule follow-ups
@@ -253,6 +272,7 @@
         type: "SCHEDULE_SEQUENCE",
         phone,
         name,
+        businessName,
         messages,
         intervalSeconds: intervalSeconds
       }, (response) => {
@@ -262,7 +282,7 @@
       });
     } else {
       // Single message
-      const resolved = resolveTemplate(mainMessage, name);
+      const resolved = resolveTemplate(mainMessage, name, businessName);
       chrome.tabs.create({ url: buildWhatsAppLink(phone, resolved) });
     }
   });
@@ -307,15 +327,13 @@
     if (tplFollowup1.value.trim()) followups.push(tplFollowup1.value.trim());
     if (tplFollowup2.value.trim()) followups.push(tplFollowup2.value.trim());
     const isDefault = document.getElementById("tplDefault").checked;
+    const isBusinessDefault = document.getElementById("tplBusinessDefault").checked;
     const interval = parseInt(document.getElementById("tplInterval").value) || 20;
 
     const saveTemplate = () => {
-      chrome.runtime.sendMessage({ type: "SAVE_TEMPLATE", template: { name, message, followups, isDefault, interval } }, () => {
+      chrome.runtime.sendMessage({ type: "SAVE_TEMPLATE", template: { name, message, followups, isDefault, isBusinessDefault, interval } }, () => {
         loadTemplates(() => {
-          templateSelect.value = name;
-          messageInput.value = message;
-          followup1.value = followups[0] || "";
-          followup2.value = followups[1] || "";
+          applyTemplate(templates.find((template) => template.name === name));
         });
         closeModalEl(modalOverlay);
       });

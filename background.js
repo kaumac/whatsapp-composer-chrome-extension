@@ -47,7 +47,7 @@ function buildWhatsAppLink(phone, message) {
   return `https://api.whatsapp.com/send/?phone=${phoneClean}&text=${encoded}`;
 }
 
-function resolveTemplate(template, name) {
+function resolveTemplate(template, name, businessName) {
   const h = new Date().getHours();
   let g, G;
   if (h >= 5 && h < 12) { g = "bom dia"; G = "Bom dia"; }
@@ -56,6 +56,7 @@ function resolveTemplate(template, name) {
   return template
     .replace(/\{name\}/g, name || "")
     .replace(/\{Name\}/g, name || "")
+    .replace(/\{business_name\}/g, businessName || "")
     .replace(/\{greeting\}/g, g)
     .replace(/\{Greeting\}/g, G);
 }
@@ -64,21 +65,30 @@ function resolveTemplate(template, name) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Template storage
   if (message.type === "GET_TEMPLATES") {
-    chrome.storage.local.get("customTemplates", (data) => {
-      sendResponse({ customTemplates: data.customTemplates || [] });
+    chrome.storage.local.get(["customTemplates", "deletedTemplates"], (data) => {
+      sendResponse({
+        customTemplates: data.customTemplates || [],
+        deletedTemplates: data.deletedTemplates || []
+      });
     });
     return true;
   }
 
   if (message.type === "SAVE_TEMPLATE") {
-    chrome.storage.local.get("customTemplates", (data) => {
+    chrome.storage.local.get(["customTemplates", "deletedTemplates"], (data) => {
       let templates = data.customTemplates || [];
-      // If new template is default, clear isDefault from all others
+      const deletedTemplates = new Set(data.deletedTemplates || []);
+      // Keep individual and business defaults independent from each other.
       if (message.template.isDefault) {
         templates = templates.map(t => ({ ...t, isDefault: false }));
       }
+      if (message.template.isBusinessDefault) {
+        templates = templates.map(t => ({ ...t, isBusinessDefault: false }));
+      }
       // Ensure message preserves Unicode (handle emojis properly)
       const template = { ...message.template };
+      // Saving a template with a previously deleted built-in name restores it.
+      deletedTemplates.delete(template.name);
       // Check if we're updating an existing template (same name)
       const existingIdx = templates.findIndex(t => t.name === template.name);
       if (existingIdx >= 0) {
@@ -86,7 +96,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } else {
         templates.push(template);
       }
-      chrome.storage.local.set({ customTemplates: templates }, () => {
+      chrome.storage.local.set({
+        customTemplates: templates,
+        deletedTemplates: [...deletedTemplates]
+      }, () => {
         sendResponse({ success: true });
       });
     });
@@ -94,11 +107,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   if (message.type === "DELETE_TEMPLATE") {
-    chrome.storage.local.get("customTemplates", (data) => {
+    chrome.storage.local.get(["customTemplates", "deletedTemplates"], (data) => {
       const templates = (data.customTemplates || []).filter(
         (t) => t.name !== message.name
       );
-      chrome.storage.local.set({ customTemplates: templates }, () => {
+      const deletedTemplates = new Set(data.deletedTemplates || []);
+      deletedTemplates.add(message.name);
+      chrome.storage.local.set({
+        customTemplates: templates,
+        deletedTemplates: [...deletedTemplates]
+      }, () => {
         sendResponse({ success: true });
       });
     });
@@ -107,7 +125,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   // Schedule a message sequence using WhatsApp send links
   if (message.type === "SCHEDULE_SEQUENCE") {
-    const { phone, name, messages, intervalSeconds } = message;
+    const { phone, name, businessName, messages, intervalSeconds } = message;
     const sequenceId = `seq_${Date.now()}`;
     // Convert seconds to minutes for Chrome alarms (minimum ~0.5 minutes)
     const delayMinutes = Math.max(intervalSeconds / 60, 0.5);
@@ -117,6 +135,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sequences[sequenceId] = {
         phone,
         name,
+        businessName,
         messages,
         intervalSeconds,
         delayMinutes,
@@ -168,10 +187,10 @@ chrome.alarms.onAlarm.addListener((alarm) => {
     const sequence = sequences[sequenceId];
     if (!sequence) return;
 
-    const { phone, name, messages, delayMinutes, currentIndex } = sequence;
+    const { phone, name, businessName, messages, delayMinutes, currentIndex } = sequence;
 
     if (currentIndex < messages.length) {
-      const message = resolveTemplate(messages[currentIndex], name);
+      const message = resolveTemplate(messages[currentIndex], name, businessName);
       const url = buildWhatsAppLink(phone, message);
 
       // Open the tab with the follow-up message
