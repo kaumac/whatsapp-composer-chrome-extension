@@ -25,6 +25,11 @@
       "matches": ["https://api.whatsapp.com/send*"],
       "js": ["auto-continue.js"],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://web.whatsapp.com/*"],
+      "js": ["whatsapp.js"],
+      "run_at": "document_idle"
     }
   ],
   "background": {

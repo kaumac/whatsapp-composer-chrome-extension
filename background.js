@@ -62,8 +62,79 @@ function resolveTemplate(template, name, businessName, region) {
     .replace(/\{Greeting\}/g, G);
 }
 
+function autoSendTabKey(tabId) {
+  return `wppAutoSendTab_${tabId}`;
+}
+
+function autoCloseTabKey(tabId) {
+  return `wppAutoCloseTab_${tabId}`;
+}
+
 // Message storage
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // The api.whatsapp.com redirect page marks extension-opened tabs before
+  // navigating to WhatsApp Web. This keeps auto-send scoped to our own tabs.
+  if (message.type === "MARK_AUTO_SEND_TAB") {
+    const tabId = sender.tab?.id;
+    if (typeof tabId !== "number") {
+      sendResponse({ success: false });
+      return;
+    }
+
+    chrome.storage.session.set({ [autoSendTabKey(tabId)]: true }, () => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
+
+  // WhatsApp Web asks whether this tab was marked by the redirect script.
+  // Consume the marker and authorize a one-time close after sending.
+  if (message.type === "GET_AUTO_SEND_TAB") {
+    const tabId = sender.tab?.id;
+    if (typeof tabId !== "number") {
+      sendResponse({ autoSend: false });
+      return;
+    }
+
+    const key = autoSendTabKey(tabId);
+    chrome.storage.session.get(key, (data) => {
+      const autoSend = data[key] === true;
+      chrome.storage.session.remove(key, () => {
+        if (autoSend) {
+          chrome.storage.session.set({ [autoCloseTabKey(tabId)]: true });
+        }
+        sendResponse({ autoSend });
+      });
+    });
+    return true;
+  }
+
+  // Close only tabs that completed the extension's auto-send handshake.
+  if (message.type === "CLOSE_AUTO_SEND_TAB") {
+    const tabId = sender.tab?.id;
+    if (typeof tabId !== "number") {
+      sendResponse({ success: false });
+      return;
+    }
+
+    const key = autoCloseTabKey(tabId);
+    chrome.storage.session.get(key, (data) => {
+      if (data[key] !== true) {
+        sendResponse({ success: false });
+        return;
+      }
+
+      chrome.storage.session.remove(key, () => {
+        chrome.tabs.remove(tabId, () => {
+          // A tab may already have been closed by the user.
+          void chrome.runtime.lastError;
+          sendResponse({ success: true });
+        });
+      });
+    });
+    return true;
+  }
+
   // Template storage
   if (message.type === "GET_TEMPLATES") {
     chrome.storage.local.get(["customTemplates", "deletedTemplates"], (data) => {
